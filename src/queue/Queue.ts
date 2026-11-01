@@ -6,7 +6,7 @@ export class Queue {
 
   constructor(
     public readonly name: string,
-    private readonly redis: Redis
+    private readonly redis: Redis,
   ) {
     this.waitingKey = `taskflow:${name}:waiting`;
   }
@@ -35,20 +35,23 @@ export class Queue {
       throw new Error("Failed to add job: transaction aborted");
     }
     for (const [err] of results) {
-        
       if (err) throw err;
     }
 
     return job;
   }
 
- async getJob<T>(jobId: string): Promise<Job<T> | null> {
-  const hash = await this.redis.hgetall(this.jobKey(jobId));
+  async getJob<T>(jobId: string): Promise<Job<T> | null> {
+    const hash = await this.redis.hgetall(this.jobKey(jobId));
 
-  if (Object.keys(hash).length === 0) {
-    return null;
+    if (Object.keys(hash).length === 0) {
+      return null;
+    }
+
+    return Job.fromRedisHash<T>(hash);
   }
 
-  return Job.fromRedisHash<T>(hash);
+  async getWaitingCount(): Promise<number> {
+  return this.redis.llen(this.waitingKey);
 }
 }

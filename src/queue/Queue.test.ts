@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { Redis } from "ioredis";
 import { Queue } from "./Queue.js";
 
-describe("Queue.add", () => {
+describe("Queue", () => {
   let redis: Redis;
   let queue: Queue;
   const queueName = "test-email";
@@ -46,6 +46,16 @@ describe("Queue.add", () => {
     expect(stored.name).toBe("send-email");
     expect(stored.status).toBe("waiting");
     expect(JSON.parse(stored.data)).toEqual({ to: "a@example.com" });
+  });
+  it("returns 0 waiting jobs for an empty queue", async () => {
+    expect(await queue.getWaitingCount()).toBe(0);
+  });
+  it("counts waiting jobs after adding them", async () => {
+    await queue.add("send-email", { n: 1 });
+    await queue.add("send-email", { n: 2 });
+    await queue.add("send-email", { n: 3 });
+
+    expect(await queue.getWaitingCount()).toBe(3);
   });
 
   it("pushes the job id onto the waiting list in FIFO order", async () => {
